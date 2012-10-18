@@ -2,7 +2,7 @@
   (:use net.cgrand.enlive-html
         noir.core
         forms-bootstrap.util
-        [sandbar.validation :only (if-valid)])
+        [validateur.validation :only (valid?)])
   (:require [noir.validation :as vali]
             [clojure.string :as string]
             [noir.session :as session]
@@ -409,14 +409,14 @@
                    {})
         errors (if (seq flash-errors)
                  (maybe-conj
-                  (map (fn[[k v]] {k {:errors v :default ""}}) flash-errors))
+                  (map (fn[[k v]] {k {:errors (into [] v) :default ""}}) flash-errors))
                  {})
         errs-defs  (merge-with
                     (fn[a b] {:errors (:errors b) :default (:default a)})
                     defaults errors)]
-    ;;    (println "(FBS) Noir ERRORS: " @vali/*errors*)
-    ;;    (println "(FBS) Sandbar ERRORS: " (:_sandbar-errors form-map))
-    (println "(FBS) Making form. Computed errors / defaults map: " errs-defs)
+       ;; (println "(FBS) Noir ERRORS: " @vali/*errors*)
+       ;; (println "(FBS) Sandbar ERRORS: " (:_sandbar-errors flash-data))
+    ;; (println "(FBS) Making form. Computed errors / defaults map: " errs-defs)
     errs-defs))
     
 ;;Takes a validator function, an url (route) to POST to, a sequence of
@@ -441,6 +441,7 @@
                (apply concat)
                (apply make-form))))
      (defpage [:post ~post-url] {:as m#}
-       (if-valid ~validator m#
-                 ~on-success
-                 (comp ~on-failure move-errors-to-flash)))))
+       (let [errors# (~validator m#)]
+         (if (empty? errors#)
+           (~on-success m#)
+           ((comp ~on-failure move-errors-to-flash) m# errors#))))))
